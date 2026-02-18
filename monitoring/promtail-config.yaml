@@ -1,0 +1,77 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /var/lib/promtail/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: docker-core-app
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+        filters:
+          - name: label
+            values: ["com.docker.compose.project=meta-core"]
+    relabel_configs:
+      - source_labels: [__meta_docker_container_label_com_docker_compose_project]
+        regex: meta-core
+        action: keep
+      - source_labels: [__meta_docker_container_label_com_docker_compose_service]
+        regex: app
+        action: keep
+      - target_label: job
+        replacement: docker-core-app
+      - source_labels: [__meta_docker_container_label_com_docker_compose_service]
+        target_label: service
+      - source_labels: [__meta_docker_container_name]
+        target_label: container
+        regex: "/(.*)"
+      - source_labels: [__meta_docker_container_log_path]
+        target_label: __path__
+    pipeline_stages:
+      - docker: {}
+      - output:
+          source: log
+
+  - job_name: docker-infra
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+        filters:
+          - name: label
+            values: ["com.docker.compose.project=meta-core"]
+    relabel_configs:
+      - source_labels: [__meta_docker_container_label_com_docker_compose_project]
+        regex: meta-core
+        action: keep
+      - source_labels: [__meta_docker_container_label_com_docker_compose_service]
+        regex: app
+        action: drop
+      - source_labels: [__meta_docker_container_label_com_docker_compose_service]
+        regex: promtail
+        action: drop
+      - target_label: job
+        replacement: docker-infra
+      - source_labels: [__meta_docker_container_label_com_docker_compose_service]
+        target_label: service
+      - source_labels: [__meta_docker_container_name]
+        target_label: container
+        regex: "/(.*)"
+      - source_labels: [__meta_docker_container_log_path]
+        target_label: __path__
+    pipeline_stages:
+      - docker: {}
+      - drop:
+          expression: "(?i)level=info"
+      - drop:
+          expression: "\\bINFO\\b"
+      - drop:
+          expression: "\\[INF\\]"
+      - drop:
+          expression: "(?i)\\bnotice\\b"
+      - output:
+          source: log

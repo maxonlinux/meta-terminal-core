@@ -1,0 +1,32 @@
+{
+  "uid": "core-infra-logs",
+  "title": "Core Infra Logs",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "type": "logs",
+      "title": "Core Infra (warn/error)",
+      "gridPos": { "x": 0, "y": 0, "w": 24, "h": 16 },
+      "datasource": { "type": "loki", "uid": "Loki" },
+      "targets": [
+        {
+          "expr": "{job=\"docker-infra\"}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "showCommonLabels": false,
+        "wrapLogMessage": true
+      }
+    }
+  ]
+}

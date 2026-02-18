@@ -1,0 +1,35 @@
+{
+  "uid": "core-logs",
+  "title": "Core Logs",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "logs",
+      "title": "Core Logs",
+      "datasource": {
+        "type": "loki",
+        "uid": "Loki"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "{job=\"docker-core\"}",
+          "queryType": "range"
+        }
+      ],
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 12
+      }
+    }
+  ]
+}

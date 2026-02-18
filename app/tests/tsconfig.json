@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "types": ["bun-types"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "target": "ESNext"
+  },
+  "include": ["./*.ts"]
+}

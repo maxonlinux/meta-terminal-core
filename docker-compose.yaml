@@ -1,0 +1,254 @@
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "2"
+
+services:
+  traefik:
+    logging: *default-logging
+    image: traefik:latest
+    restart: always
+    command:
+      - "--api.dashboard=false"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.constraints=Label(`traefik.stack`,`core`)"
+      - "--entrypoints.web.address=:3000"
+    networks:
+      - core-net
+    ports:
+      - "3030:3000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+  nats:
+    logging: *default-logging
+    image: nats:latest
+    restart: always
+    command:
+      - "-js"
+      - "-sd"
+      - "/data/jetstream"
+      - "-m"
+      - "8222"
+      - "--auth"
+      - "${NATS_TOKEN}"
+    ports:
+      - "4223:4222"
+      - "8223:8222"
+    volumes:
+      - nats_data:/data
+    networks:
+      - core-net
+
+  clickhouse:
+    logging: *default-logging
+    image: clickhouse/clickhouse-server:latest
+    restart: always
+    healthcheck:
+      test:
+        ["CMD", "clickhouse-client", "--host=localhost", "--query", "SELECT 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+    environment:
+      CLICKHOUSE_USER: ${CH_USER}
+      CLICKHOUSE_PASSWORD: ${CH_PASSWORD}
+      CLICKHOUSE_DB: ${CH_DB}
+    networks:
+      - core-net
+
+  loki:
+    logging: *default-logging
+    image: grafana/loki:latest
+    restart: always
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - loki_data:/loki
+      - ./monitoring/loki-config.yaml:/etc/loki/local-config.yaml:ro
+    networks:
+      - core-net
+
+  grafana:
+    logging: *default-logging
+    image: grafana/grafana:latest
+    restart: always
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://localhost:3030/grafana/
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    networks:
+      - core-net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.stack=core"
+      - "traefik.http.routers.grafana.rule=PathPrefix(`/grafana`)"
+      - "traefik.http.routers.grafana.entrypoints=web"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+    depends_on:
+      - loki
+      - prometheus
+      - pyroscope
+
+  promtail:
+    logging: *default-logging
+    image: grafana/promtail:latest
+    restart: always
+    command: -config.file=/etc/promtail/config.yaml
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./monitoring/promtail-config.yaml:/etc/promtail/config.yaml:ro
+      - ../meta-terminal-data/promtail-core:/var/lib/promtail
+    networks:
+      - core-net
+    depends_on:
+      - loki
+
+  prometheus:
+    logging: *default-logging
+    image: prom/prometheus:latest
+    restart: always
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks:
+      - core-net
+
+  pyroscope:
+    logging: *default-logging
+    image: grafana/pyroscope:latest
+    restart: always
+    command: -config.file=/etc/pyroscope/pyroscope.yaml
+    volumes:
+      - ./monitoring/pyroscope.yaml:/etc/pyroscope/pyroscope.yaml:ro
+      - pyroscope_data:/data
+    networks:
+      - core-net
+
+  alloy:
+    logging: *default-logging
+    image: grafana/alloy:latest
+    restart: always
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - /etc/alloy/alloy.config
+    volumes:
+      - ./monitoring/alloy/pyroscope-ebpf.alloy:/etc/alloy/alloy.config:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    pid: "host"
+    privileged: true
+    networks:
+      - core-net
+    depends_on:
+      - pyroscope
+
+  node-exporter:
+    logging: *default-logging
+    image: prom/node-exporter:latest
+    restart: always
+    command:
+      - "--path.rootfs=/host"
+    volumes:
+      - /:/host:ro,rslave
+    networks:
+      - core-net
+
+  app:
+    container_name: core-app
+    logging: *default-logging
+    build:
+      context: ./app
+    labels:
+      - "traefik.enable=true"
+      - "traefik.stack=core"
+      - "traefik.http.routers.core.rule=PathPrefix(`/api`)"
+      - "traefik.http.routers.core.entrypoints=web"
+      - "traefik.http.routers.core.priority=2"
+      - "traefik.http.middlewares.core-strip.stripprefix.prefixes=/api"
+      - "traefik.http.routers.core.middlewares=core-strip"
+      - "traefik.http.services.core.loadbalancer.server.port=3000"
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+      nats:
+        condition: service_started
+    restart: always
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "bun",
+          "-e",
+          "fetch('http://localhost:3000/health').then(r=>{if(!r.ok) process.exit(1)})",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    env_file:
+      - .env
+    environment:
+      PORT: 3000
+
+      JWT_SECRET: ${JWT_SECRET}
+      COOKIE_SECRET: ${COOKIE_SECRET}
+
+      NATS_TOPIC: ${NATS_TOPIC}
+      NATS_URL: ${NATS_URL}
+      NATS_TOKEN: ${NATS_TOKEN}
+
+      CH_HOST: http://clickhouse:8123
+      CH_USER: ${CH_USER}
+      CH_PASSWORD: ${CH_PASSWORD}
+      CH_DB: ${CH_DB}
+
+      LOG_LEVEL: ${LOG_LEVEL}
+      NODE_ENV: ${NODE_ENV}
+      BUN_PROFILING: ${BUN_PROFILING:-false}
+      BUN_PROFILE_DIR: /app/profiles
+      BUN_OPTIONS: ${BUN_OPTIONS:-}
+    volumes:
+      - ../meta-terminal-data/core:/app/data
+      - ../meta-terminal-data/core-profiles:/app/profiles
+    networks:
+      - core-net
+
+  admin-ui:
+    logging: *default-logging
+    build:
+      context: ./admin-ui
+      args:
+        CORE_URL: "http://app:3000"
+    restart: always
+    networks:
+      - core-net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.stack=core"
+      - "traefik.http.routers.admin-ui.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.admin-ui.entrypoints=web"
+      - "traefik.http.routers.admin-ui.priority=1"
+      - "traefik.http.services.admin-ui.loadbalancer.server.port=3000"
+    environment:
+      CORE_URL: "http://app:3000"
+
+volumes:
+  clickhouse_data:
+  loki_data:
+  grafana_data:
+  uploads_data:
+  assets_data:
+  nats_data:
+  pyroscope_data:
+
+networks:
+  core-net:
+    driver: bridge

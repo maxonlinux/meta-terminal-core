@@ -1,0 +1,29 @@
+discovery.docker "local_containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+discovery.relabel "core_app" {
+  targets = discovery.docker.local_containers.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/core-app"
+    action        = "keep"
+  }
+}
+
+pyroscope.ebpf "core_app" {
+  forward_to = [pyroscope.write.endpoint.receiver]
+  targets    = discovery.relabel.core_app.targets
+}
+
+pyroscope.write "endpoint" {
+  endpoint {
+    url = "http://pyroscope:4040"
+  }
+
+  external_labels = {
+    "service"  = "core-app",
+    "instance" = env("HOSTNAME"),
+  }
+}

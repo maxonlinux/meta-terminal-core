@@ -1,0 +1,34 @@
+{
+  "name": "meta-core-admin",
+  "type": "module",
+  "scripts": {
+    "dev": "vinxi dev",
+    "build": "vinxi build",
+    "start": "vinxi start"
+  },
+  "dependencies": {
+    "@solid-primitives/memo": "^1.4.3",
+    "@solidjs/router": "^0.15.0",
+    "@solidjs/start": "^1.1.0",
+    "@thisbeyond/solid-dnd": "^0.7.5",
+    "axios": "^1.13.5",
+    "cheerio": "^1.2.0",
+    "lucide-solid": "^0.563.0",
+    "sharp": "^0.34.5",
+    "solid-js": "^1.9.5",
+    "solid-sonner": "^0.2.8",
+    "vinxi": "^0.5.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.0.7",
+    "tailwindcss": "^4.0.7",
+    "@types/bun": "latest"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "private": true,
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}

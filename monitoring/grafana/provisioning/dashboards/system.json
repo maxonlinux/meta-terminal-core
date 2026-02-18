@@ -1,0 +1,75 @@
+{
+  "uid": "core-system",
+  "title": "Core System Metrics",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "CPU Usage",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(node_cpu_seconds_total{mode!=\"idle\"}[5m])) by (instance)",
+          "legendFormat": "{{instance}}"
+        }
+      ],
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Memory Available",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "node_memory_MemAvailable_bytes",
+          "legendFormat": "{{instance}}"
+        }
+      ],
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Filesystem Available",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "node_filesystem_avail_bytes{fstype!~\"tmpfs|overlay\"}",
+          "legendFormat": "{{instance}} {{mountpoint}}"
+        }
+      ],
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 24,
+        "h": 8
+      }
+    }
+  ]
+}
