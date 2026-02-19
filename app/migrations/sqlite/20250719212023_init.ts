@@ -1,6 +1,10 @@
 import type { Knex } from "knex";
 
 export async function up(knex: Knex): Promise<void> {
+  const exists = await knex.schema.hasTable("assets");
+  if (exists) {
+    return;
+  }
   await knex.schema.createTable("assets", (table) => {
     table.text("symbol").primary();
     table.text("type").notNullable();

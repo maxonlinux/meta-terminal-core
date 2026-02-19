@@ -1,7 +1,7 @@
 #!/bin/sh
 
 echo "📦 Running SQLite migrations..."
-node node_modules/knex/bin/cli.js migrate:latest --env production
+bun x knex migrate:latest --env production --knexfile ./knexfile.ts
 
 echo "📦 Running ClickHouse migrations..."
 node node_modules/.bin/clickhouse-migrations migrate --host="${CH_HOST}" --user="${CH_USER}" --password="${CH_PASSWORD}" --migrations-home=./migrations/ch --db="${CH_DB}"

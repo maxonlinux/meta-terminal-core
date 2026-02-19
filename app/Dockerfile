@@ -16,6 +16,7 @@ WORKDIR /app
 
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/migrations ./migrations
+COPY --from=builder /app/knexfile.ts ./knexfile.ts
 COPY package.json bun.lock ./
 RUN bun install --production
 COPY entrypoint.sh /entrypoint.sh
