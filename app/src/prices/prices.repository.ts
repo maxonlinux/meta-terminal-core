@@ -13,7 +13,7 @@ export class PricesRepository {
   getLastPriceFromCandle = async (symbol: string) => {
     const query = sql`
       SELECT
-        argMaxFinal(close)  AS price,   -- достаёт значение из argMaxState(...)
+        argMax(close, time)  AS price,
         max(time)           AS timestamp
       FROM candles_1m
       WHERE symbol = {symbol:String}
