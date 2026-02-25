@@ -9,8 +9,8 @@ export const clickhouse = createClient({
   password: config.CH_PASSWORD,
   database: config.CH_DB,
   clickhouse_settings: {
-    async_insert: config.CH_ASYNC_INSERT,
-    wait_for_async_insert: config.CH_WAIT_FOR_ASYNC_INSERT,
+    async_insert: String(config.CH_ASYNC_INSERT),
+    wait_for_async_insert: String(config.CH_WAIT_FOR_ASYNC_INSERT),
     async_insert_busy_timeout_ms: String(
       config.CH_ASYNC_INSERT_BUSY_TIMEOUT_MS,
     ),
