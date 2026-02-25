@@ -9,6 +9,7 @@ import { storageRoutes } from "./storage/storage.routes";
 import { adminRoutes } from "./admin/admin.routes";
 import { assetsRepo } from "./assets/assets.repository";
 import { pricesRepo } from "./prices/prices.repository";
+import { candlesRepo } from "./candles/candles.repository";
 import type { TickData } from "./prices/prices.types";
 import { initLogging, logger } from "./shared/logger";
 import { NatsClient } from "./shared/nats/nats.client";
@@ -77,6 +78,7 @@ const start = async () => {
     };
 
     nats.subscribe<Omit<TickData, "volume">>(config.NATS_TOPIC, (tick) => {
+      candlesRepo.invalidateLastCandles(tick.symbol);
       const cached = pricesRepo.cacheTick(tick);
       tickBuffer.push(cached);
 

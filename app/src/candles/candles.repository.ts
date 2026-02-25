@@ -33,6 +33,30 @@ export function getTableForInterval(interval: number): string {
 }
 
 class CandlesRepository {
+  private lastCandleCache = new Map<string, CandleData>();
+
+  private getLastCandleCacheKey(symbol: string, interval: number) {
+    return `${symbol}:${interval}`;
+  }
+
+  getCachedLastCandle = (symbol: string, interval: number) => {
+    const key = this.getLastCandleCacheKey(symbol, interval);
+    return this.lastCandleCache.get(key) ?? null;
+  };
+
+  cacheLastCandle = (symbol: string, interval: number, candle: CandleData) => {
+    const key = this.getLastCandleCacheKey(symbol, interval);
+    this.lastCandleCache.set(key, candle);
+  };
+
+  invalidateLastCandles = (symbol: string) => {
+    for (const key of this.lastCandleCache.keys()) {
+      if (key.startsWith(`${symbol}:`)) {
+        this.lastCandleCache.delete(key);
+      }
+    }
+  };
+
   getCandles = async (
     symbol: string,
     interval: number,
@@ -118,6 +142,9 @@ class CandlesRepository {
   };
 
   getLastCandle = async (symbol: string, interval: number) => {
+    const cached = this.getCachedLastCandle(symbol, interval);
+    if (cached) return cached;
+
     const table = getTableForInterval(interval);
     const baseInterval = getBaseInterval(interval);
 
@@ -148,6 +175,7 @@ class CandlesRepository {
       const data = await result.json<CandleData>();
 
       if (data.length) {
+        this.cacheLastCandle(symbol, interval, data[0]);
         return data[0];
       }
 
@@ -200,6 +228,7 @@ class CandlesRepository {
     const data = await result.json<CandleData>();
 
     if (data.length) {
+      this.cacheLastCandle(symbol, interval, data[0]);
       return data[0];
     }
 
