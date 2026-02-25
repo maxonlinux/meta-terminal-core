@@ -47,17 +47,18 @@ class CandlesRepository {
         SELECT
           symbol,
           toUnixTimestamp(time) AS time,
-          argMinMerge(open) AS open,
-          max(high) AS high,
-          min(low) AS low,
-          argMaxMerge(close) AS close,
-          sum(volume) AS volume
+          finalizeAggregation(open) AS open,
+          high AS high,
+          low AS low,
+          finalizeAggregation(close) AS close,
+          volume AS volume
         FROM ${table}
+        FINAL
         WHERE symbol = {symbol:String}
           AND ({before:Nullable(UInt64)} IS NULL OR toUnixTimestamp(time) <= {before:Nullable(UInt64)})
-        GROUP BY symbol, time
         ORDER BY time DESC
         LIMIT {outputsize:UInt32}
+        SETTINGS optimize_read_in_order = 1
       `;
 
       const result = await clickhouse.query({
@@ -126,16 +127,17 @@ class CandlesRepository {
           SELECT
             symbol,
             toUnixTimestamp(time) AS time,
-            argMinMerge(open) AS open,
-            max(high) AS high,
-            min(low) AS low,
-            argMaxMerge(close) AS close,
-            sum(volume) AS volume
+            finalizeAggregation(open) AS open,
+            high AS high,
+            low AS low,
+            finalizeAggregation(close) AS close,
+            volume AS volume
           FROM ${table}
+          FINAL
           WHERE symbol = {symbol:String}
-          GROUP BY symbol, time
           ORDER BY time DESC
           LIMIT 1
+          SETTINGS optimize_read_in_order = 1
         `,
         format: "JSONEachRow",
         query_params: {
@@ -154,6 +156,13 @@ class CandlesRepository {
 
     const result = await clickhouse.query({
       query: sql`
+        WITH
+          (
+            SELECT max(time)
+            FROM ${table}
+            WHERE symbol = {symbol:String}
+          ) AS max_time,
+          toStartOfInterval(max_time, INTERVAL ${interval} SECOND) AS bucket
         SELECT
           symbol,
           toUnixTimestamp(bucket) AS time,
@@ -174,6 +183,8 @@ class CandlesRepository {
             sum(volume) AS volume_value
           FROM ${table}
           WHERE symbol = {symbol:String}
+            AND time >= bucket
+            AND time < bucket + INTERVAL ${interval} SECOND
           GROUP BY symbol, time, bucket
         )
         GROUP BY symbol, bucket
