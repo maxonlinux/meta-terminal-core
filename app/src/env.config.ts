@@ -16,6 +16,11 @@ const rawConfig = cleanEnv(process.env, {
   CH_USER: str({ example: "default" }),
   CH_PASSWORD: str({ example: "default" }),
   CH_DB: str({ example: "default" }),
+  CH_ASYNC_INSERT: num({ default: 1 }),
+  CH_WAIT_FOR_ASYNC_INSERT: num({ default: 1 }),
+  CH_ASYNC_INSERT_BUSY_TIMEOUT_MS: num({ default: 500 }),
+  CH_ASYNC_INSERT_MAX_DATA_SIZE: num({ default: 10_485_760 }),
+  CH_ASYNC_INSERT_MAX_QUERY_NUMBER: num({ default: 450 }),
 
   COOKIE_TOKEN_NAME: str({
     example: "meta_core_token",
