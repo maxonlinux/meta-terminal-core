@@ -9,6 +9,7 @@ import { storageRoutes } from "./storage/storage.routes";
 import { adminRoutes } from "./admin/admin.routes";
 import { assetsRepo } from "./assets/assets.repository";
 import { pricesRepo } from "./prices/prices.repository";
+import type { TickData } from "./prices/prices.types";
 import { initLogging, logger } from "./shared/logger";
 import { NatsClient } from "./shared/nats/nats.client";
 import { tradingview } from "./shared/tradingview/tradingview.ingestor";
@@ -52,6 +53,42 @@ const start = async () => {
       config.NATS_TOKEN,
     );
 
+    const batchIntervalMs = config.NATS_BATCH_INTERVAL_MS;
+    const batchSize = config.NATS_BATCH_SIZE;
+    const tickBuffer: TickData[] = [];
+    let flushing = false;
+
+    const flushTicks = async (reason: "interval" | "size") => {
+      if (flushing || tickBuffer.length === 0) return;
+      flushing = true;
+      const batch = tickBuffer.splice(0, tickBuffer.length);
+
+      try {
+        await pricesRepo.insertTicks(batch);
+      } catch (error) {
+        logger.error("Failed to batch insert price ticks", {
+          reason,
+          count: batch.length,
+          error,
+        });
+      } finally {
+        flushing = false;
+      }
+    };
+
+    nats.subscribe<Omit<TickData, "volume">>(config.NATS_TOPIC, (tick) => {
+      const cached = pricesRepo.cacheTick(tick);
+      tickBuffer.push(cached);
+
+      if (tickBuffer.length >= batchSize) {
+        void flushTicks("size");
+      }
+    });
+
+    setInterval(() => {
+      void flushTicks("interval");
+    }, batchIntervalMs);
+
     tradingview.connect();
 
     tradingview.onopen = async () => {
@@ -81,14 +118,6 @@ const start = async () => {
       }
 
       nats.publish(config.NATS_TOPIC, withTimestamp);
-      try {
-        await pricesRepo.savePriceTick(withTimestamp);
-      } catch (error) {
-        logger.error("Failed to save price tick", {
-          symbol: withTimestamp.symbol,
-          error,
-        });
-      }
     };
 
     // If an asset never produced a tick, we resubscribe less aggressively.

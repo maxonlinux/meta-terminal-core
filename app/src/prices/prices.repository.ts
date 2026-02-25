@@ -10,6 +10,12 @@ export class PricesRepository {
     return this.lastTicks.get(symbol) ?? null;
   };
 
+  cacheTick = (data: Omit<TickData, "volume">) => {
+    const tick: TickData = { ...data, volume: 0 };
+    this.lastTicks.set(tick.symbol, tick);
+    return tick;
+  };
+
   getLastPriceFromCandle = async (symbol: string) => {
     const query = sql`
       SELECT
@@ -65,21 +71,16 @@ export class PricesRepository {
   };
 
   savePriceTick = async (data: Omit<TickData, "volume">) => {
-    const { symbol, price, timestamp } = data;
-    // Always update the in-memory cache, even if ClickHouse is unavailable.
-    const tick: TickData = { symbol, price, timestamp, volume: 0 };
-    this.lastTicks.set(symbol, tick);
+    const tick = this.cacheTick(data);
+    await this.insertTicks([tick]);
+  };
+
+  insertTicks = async (ticks: TickData[]) => {
+    if (!ticks.length) return;
 
     await clickhouse.insert({
       table: "ticks",
-      values: [
-        {
-          symbol,
-          price,
-          volume: 0,
-          timestamp,
-        },
-      ],
+      values: ticks,
       format: "JSONEachRow",
     });
   };
