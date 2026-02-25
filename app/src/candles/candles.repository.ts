@@ -174,9 +174,10 @@ class CandlesRepository {
 
       const data = await result.json<CandleData>();
 
-      if (data.length) {
-        this.cacheLastCandle(symbol, interval, data[0]);
-        return data[0];
+      const candle = data[0];
+      if (candle) {
+        this.cacheLastCandle(symbol, interval, candle);
+        return candle;
       }
 
       return null;
@@ -227,9 +228,10 @@ class CandlesRepository {
 
     const data = await result.json<CandleData>();
 
-    if (data.length) {
-      this.cacheLastCandle(symbol, interval, data[0]);
-      return data[0];
+    const candle = data[0];
+    if (candle) {
+      this.cacheLastCandle(symbol, interval, candle);
+      return candle;
     }
 
     return null;
