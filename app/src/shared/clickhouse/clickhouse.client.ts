@@ -3,9 +3,9 @@ import { config } from "@/env.config";
 
 export const sql = String.raw;
 
-const asyncInsert: 0 | 1 = config.CH_ASYNC_INSERT === 1 ? 1 : 0;
+const asyncInsert: 0 | 1 = config.CH_ASYNC_INSERT ? 1 : 0;
 const waitForAsyncInsert: 0 | 1 =
-  config.CH_WAIT_FOR_ASYNC_INSERT === 1 ? 1 : 0;
+  config.CH_WAIT_FOR_ASYNC_INSERT ? 1 : 0;
 
 export const clickhouse = createClient({
   url: config.CH_HOST,
