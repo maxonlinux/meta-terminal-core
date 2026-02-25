@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<clickhouse>
+    <background_pool_size>8</background_pool_size>
+    <background_schedule_pool_size>32</background_schedule_pool_size>
+</clickhouse>
