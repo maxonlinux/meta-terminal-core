@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+<clickhouse>
+    <logger>
+        <level>information</level>
+        <log></log>
+        <errorlog>/var/log/clickhouse-server/clickhouse-server.err.log</errorlog>
+        <size>1000M</size>
+        <count>10</count>
+    </logger>
+    
+    <query_log>
+        <database>system</database>
+        <table>query_log</table>
+        <flush_interval_milliseconds>7500</flush_interval_milliseconds>
+        <max_size_rows>1048576</max_size_rows>
+        <reserved_size_rows>8192</reserved_size_rows>
+    </query_log>
+    
+    <query_thread_log>
+        <database>system</database>
+        <table>query_thread_log</table>
+        <max_size_rows>1048576</max_size_rows>
+        <reserved_size_rows>8192</reserved_size_rows>
+    </query_thread_log>
+    
+    <query_views_log>
+        <database>system</database>
+        <table>query_views_log</table>
+        <max_size_rows>1048576</max_size_rows>
+        <reserved_size_rows>8192</reserved_size_rows>
+    </query_views_log>
+    
+    <text_log>
+        <database>system</database>
+        <table>text_log</table>
+        <max_size_rows>1048576</max_size_rows>
+        <reserved_size_rows>8192</reserved_size_rows>
+    </text_log>
+    
+    <trace_log>
+        <database>system</database>
+        <table>trace_log</table>
+        <max_size_rows>1048576</max_size_rows>
+        <reserved_size_rows>8192</reserved_size_rows>
+    </trace_log>
+    
+    <metric_log>
+        <database>system</database>
+        <table>metric_log</table>
+        <max_size_rows>1048576</max_size_rows>
+        <reserved_size_rows>8192</reserved_size_rows>
+    </metric_log>
+    
+    <part_log>
+        <database>system</database>
+        <table>part_log</table>
+        <max_size_rows>1048576</max_size_rows>
+        <reserved_size_rows>8192</reserved_size_rows>
+    </part_log>
+</clickhouse>
