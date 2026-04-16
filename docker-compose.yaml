@@ -7,7 +7,7 @@ x-logging: &default-logging
 services:
   traefik:
     logging: *default-logging
-    image: traefik:latest
+    image: traefik@sha256:90099f8948c828ecf0ababd711a4359a2443eba12261c1df2f548a3b1d815938
     restart: always
     command:
       - "--api.dashboard=false"
@@ -23,7 +23,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
   nats:
     logging: *default-logging
-    image: nats:latest
+    image: nats@sha256:c9abdce88a85ed5fcc8e9fc6b284d2601f5d1c1d0d58ddd67cfdc411768bfd7f
     restart: always
     command:
       - "-js"
@@ -43,8 +43,10 @@ services:
 
   clickhouse:
     logging: *default-logging
-    image: clickhouse/clickhouse-server:latest
+    image: clickhouse/clickhouse-server@sha256:be0cb54cf637cf6132081882bfdb33adc9826e4d87ec6fb65c8ab4e27fa91cbf
     restart: always
+    stop_signal: SIGTERM
+    stop_grace_period: 2m
     healthcheck:
       test:
         ["CMD", "clickhouse-client", "--host=localhost", "--query", "SELECT 1"]
@@ -63,7 +65,7 @@ services:
 
   loki:
     logging: *default-logging
-    image: grafana/loki:latest
+    image: grafana/loki@sha256:434c7effbd66dbf69c2665fe4b2125549ecf7b45039ac28595d4034031cf47ce
     restart: always
     command: -config.file=/etc/loki/local-config.yaml
     volumes:
@@ -74,7 +76,7 @@ services:
 
   grafana:
     logging: *default-logging
-    image: grafana/grafana:latest
+    image: grafana/grafana@sha256:9e1e77ade304069aee3196e9a4f210830e96e80ce9a2640891eccc324b152faf
     restart: always
     environment:
       - GF_SECURITY_ADMIN_USER=admin
@@ -101,7 +103,7 @@ services:
 
   promtail:
     logging: *default-logging
-    image: grafana/promtail:latest
+    image: grafana/promtail@sha256:73440757b88c8cd4452f199b2ec109590d27cdbbd594264e317466dcd7de7932
     restart: always
     command: -config.file=/etc/promtail/config.yaml
     volumes:
@@ -116,7 +118,7 @@ services:
 
   prometheus:
     logging: *default-logging
-    image: prom/prometheus:latest
+    image: prom/prometheus@sha256:1f0f50f06acaceb0f5670d2c8a658a599affe7b0d8e78b898c1035653849a702
     restart: always
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
@@ -125,7 +127,7 @@ services:
 
   pyroscope:
     logging: *default-logging
-    image: grafana/pyroscope:latest
+    image: grafana/pyroscope@sha256:0ad897bb457228c7d1133ce7004f83052e635be9daf4a7cc90364317637e9754
     restart: always
     command: -config.file=/etc/pyroscope/pyroscope.yaml
     volumes:
@@ -136,7 +138,7 @@ services:
 
   alloy:
     logging: *default-logging
-    image: grafana/alloy:latest
+    image: grafana/alloy@sha256:03529aec781901a72a354809650028435043406e707c6fb8953dc6e48f97727d
     restart: always
     command:
       - run
@@ -154,7 +156,7 @@ services:
 
   node-exporter:
     logging: *default-logging
-    image: prom/node-exporter:latest
+    image: prom/node-exporter@sha256:3ac34ce007accad95afed72149e0d2b927b7e42fd1c866149b945b84737c62c3
     restart: always
     command:
       - "--path.rootfs=/host"
@@ -184,6 +186,8 @@ services:
       nats:
         condition: service_started
     restart: always
+    stop_signal: SIGTERM
+    stop_grace_period: 30s
     healthcheck:
       test:
         [

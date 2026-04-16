@@ -85,9 +85,8 @@ docker compose up -d --build
 echo "🧹 Cleaning up garage-setup..."
 docker rm -f garage-setup 2>/dev/null || true
 
-# Setup daily reboot
-echo "⏰ Setting up daily reboot at 00:00 UTC..."
-(crontab -l 2>/dev/null | grep -v reboot; echo "0 0 * * * /usr/sbin/reboot") | crontab -
+echo "ℹ️ Host reboot scheduling is not managed by deploy script"
+echo "   Use scripts/graceful-stop.sh from your own scheduler before reboot"
 
 echo ""
 echo "✅ Deployed!"

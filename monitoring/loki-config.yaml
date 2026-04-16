@@ -30,6 +30,9 @@ limits_config:
   retention_period: 48h
   reject_old_samples: false
 
+ingester:
+  max_chunk_age: 24h
+
 compactor:
   working_directory: /loki/compactor
   retention_enabled: true
